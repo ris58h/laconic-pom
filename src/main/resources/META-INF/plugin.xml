@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>ris58h.lacopom</id>
+    <name>Laconic POM</name>
+    <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/lacopom">ris58h</vendor>
+
+    <description><![CDATA[
+    Laconic POM
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <lang.foldingBuilder language="XML" order="first" implementationClass="ris58h.lacopom.PomFoldingBuilder"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+</idea-plugin>
