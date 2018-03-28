@@ -68,6 +68,8 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         };
 
         MavenDomProjectModel projectElement = fileElement.getRootElement();
+        MavenDomParent parent = projectElement.getMavenParent();
+        addDescriptorIfPossible.accept(parent.getXmlTag(), describeParent(parent));
         processModelBase.accept(projectElement);
         projectElement.getProfiles().getProfiles().forEach(processModelBase::accept);
 
@@ -108,6 +110,20 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         String groupId = artifactCoordinates.getGroupId().getStringValue();
         String artifactId = artifactCoordinates.getArtifactId().getStringValue();
         return groupId != null && artifactId != null;
+    }
+
+    private static String describeParent(MavenDomParent parent) {
+        if (!hasId(parent)) {
+            return null;
+        }
+        if (parent.getRelativePath().getStringValue() != null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(parent.getGroupId().getStringValue());
+        appendPartIfNotNull(sb, parent.getArtifactId().getStringValue());
+        appendPartIfNotNull(sb, parent.getVersion().getStringValue());
+        return sb.toString();
     }
 
     private static String describeDependency(MavenDomDependency dependency) {
