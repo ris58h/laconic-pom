@@ -3,6 +3,7 @@ package ris58h.lacopom;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.folding.FoldingBuilderEx;
 import com.intellij.lang.folding.FoldingDescriptor;
+import com.intellij.lang.folding.NamedFoldingDescriptor;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.UnfairTextRange;
@@ -13,12 +14,16 @@ import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlToken;
+import com.intellij.util.xml.DomFileElement;
+import com.intellij.util.xml.DomManager;
 import com.intellij.xml.util.XmlTagUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.idea.maven.dom.model.MavenDomDependency;
+import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
     @NotNull
@@ -28,32 +33,33 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             return FoldingDescriptor.EMPTY;
         }
 
-        XmlTag rootTag = ((XmlFile) root).getRootTag();
-        if (rootTag == null || !rootTag.getLocalName().equals("project")) {
+        DomManager manager = DomManager.getDomManager(root.getProject());
+        DomFileElement<MavenDomProjectModel> fileElement = manager.getFileElement(((XmlFile) root), MavenDomProjectModel.class);
+        if (fileElement == null) {
             return FoldingDescriptor.EMPTY;
         }
 
-        List<FoldingDescriptor> descriptors = new ArrayList<>();
-        XmlTag dependenciesTag = rootTag.findFirstSubTag("dependencies");
-        if (dependenciesTag != null) {
-            XmlTag[] dependencyTags = dependenciesTag.findSubTags("dependency");
-            for (XmlTag dependencyTag : dependencyTags) {
-                XmlTag exclusionsTag = dependencyTag.findFirstSubTag("exclusions");
-                if (exclusionsTag == null) {
-//                        descriptors.add(new FoldingDescriptor(dependencyTag, dependencyTag.getTextRange()));
-//                        TextRange rangeToFold = dependencyTag.getTextRange();
-                    TextRange rangeToFold = getRangeToFold(dependencyTag);
-                    if (rangeToFold != null) {
-                        descriptors.add(new FoldingDescriptor(dependencyTag, rangeToFold) {
-                            @Override
-                            public String getPlaceholderText() {
-                                return " " + describeDependency(dependencyTag);
-                            }
-                        });
-                    }
+        Collection<FoldingDescriptor> descriptors = new ArrayList<>();
+
+        MavenDomProjectModel projectElement = fileElement.getRootElement();
+
+        for (MavenDomDependency dependency : projectElement.getDependencies().getDependencies()) {
+            XmlTag dependencyTag = dependency.getXmlTag();
+            String dependencyDescription = describeDependency(dependencyTag);
+            if (dependencyDescription != null) {
+                TextRange rangeToFold = getRangeToFold(dependencyTag);
+                if (rangeToFold != null) {
+                    descriptors.add(new NamedFoldingDescriptor(
+                            dependencyTag,
+                            rangeToFold.getStartOffset(),
+                            rangeToFold.getEndOffset(),
+                            null,
+                            " " + dependencyDescription));
                 }
+
             }
         }
+
         return descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
     }
 
@@ -68,24 +74,35 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         return true;
     }
 
+    //TODO systemPath, optional
     private static String describeDependency(XmlTag dependencyTag) {
-        //TODO type, classifier, scope, systemPath, exclusions, optional
+        XmlTag exclusionsTag = dependencyTag.findFirstSubTag("exclusions");
+        if (exclusionsTag != null) {
+            return null;
+        }
         XmlTag groupIdTag = dependencyTag.findFirstSubTag("groupId");
         XmlTag artifactIdTag = dependencyTag.findFirstSubTag("artifactId");
-        XmlTag versionTag = dependencyTag.findFirstSubTag("version");
+        if (artifactIdTag == null || groupIdTag == null) {
+            return null;
+        }
         StringBuilder sb = new StringBuilder();
-        if (groupIdTag != null) {
-            sb.append(groupIdTag.getValue().getTrimmedText());
-        }
-        if (artifactIdTag != null) {
-            sb.append(':');
-            sb.append(artifactIdTag.getValue().getTrimmedText());
-        }
-        if (versionTag != null) {
-            sb.append(':');
-            sb.append(versionTag.getValue().getTrimmedText());
-        }
+        sb.append(tagText(groupIdTag));
+        appendPartIfNotNull(sb, artifactIdTag);
+        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("type"));
+        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("classifier"));
+        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("version"));
+        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("scope"));
         return sb.toString();
+    }
+
+    private static void appendPartIfNotNull(StringBuilder sb, XmlTag tag) {
+        if (tag != null) {
+            sb.append(':').append(tagText(tag));
+        }
+    }
+
+    private static String tagText(XmlTag tag) {
+        return tag.getValue().getTrimmedText();
     }
 
 
