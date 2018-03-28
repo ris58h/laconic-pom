@@ -23,6 +23,7 @@ import org.jetbrains.idea.maven.dom.model.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
@@ -41,8 +42,19 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
 
         Collection<FoldingDescriptor> descriptors = new ArrayList<>();
 
+        BiConsumer<XmlTag, String> addDescriptorIfPossible = (xmlTag, placeholder) -> {
+            FoldingDescriptor foldingDescriptor = foldingDescriptor(xmlTag, placeholder);
+            if (foldingDescriptor != null) {
+                descriptors.add(foldingDescriptor);
+            }
+        };
         Consumer<MavenDomDependencies> processDependencies = dependencies -> {
-            dependencies.getDependencies().forEach(dependency -> addDependencyDescriptor(descriptors, dependency));
+            dependencies.getDependencies().forEach(dependency -> {
+                addDescriptorIfPossible.accept(dependency.getXmlTag(), describeDependency(dependency));
+                dependency.getExclusions().getExclusions().forEach(exclusion -> {
+                    addDescriptorIfPossible.accept(exclusion.getXmlTag(), describeExclusion(exclusion));
+                });
+            });
         };
         Consumer<MavenDomPlugin> processPlugin = plugin -> {
             processDependencies.accept(plugin.getDependencies());
@@ -63,13 +75,6 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
                 : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
     }
 
-    private static void addDependencyDescriptor(Collection<FoldingDescriptor> descriptors, MavenDomDependency dependency) {
-        FoldingDescriptor foldingDescriptor = foldingDescriptor(dependency.getXmlTag());
-        if (foldingDescriptor != null) {
-            descriptors.add(foldingDescriptor);
-        }
-    }
-
     @Nullable
     @Override
     public String getPlaceholderText(@NotNull ASTNode node) {
@@ -82,54 +87,61 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
     }
 
     @Nullable
-    private static FoldingDescriptor foldingDescriptor(XmlTag dependencyTag) {
-        String dependencyDescription = describeDependency(dependencyTag);
-        if (dependencyDescription == null) {
+    private static FoldingDescriptor foldingDescriptor(XmlTag xmlTag, String placeholder) {
+        if (placeholder == null) {
             return null;
         }
-        TextRange rangeToFold = getRangeToFold(dependencyTag);
+        TextRange rangeToFold = getRangeToFold(xmlTag);
         if (rangeToFold == null) {
             return null;
         }
         return new NamedFoldingDescriptor(
-                dependencyTag,
+                xmlTag,
                 rangeToFold.getStartOffset(),
                 rangeToFold.getEndOffset(),
                 null,
-                " " + dependencyDescription);
+                " " + placeholder);
     }
 
-    //TODO systemPath, optional
-    private static String describeDependency(XmlTag dependencyTag) {
-        XmlTag exclusionsTag = dependencyTag.findFirstSubTag("exclusions");
-        if (exclusionsTag != null) {
+
+    private static boolean hasId(MavenDomShortArtifactCoordinates artifactCoordinates) {
+        String groupId = artifactCoordinates.getGroupId().getStringValue();
+        String artifactId = artifactCoordinates.getArtifactId().getStringValue();
+        return groupId != null && artifactId != null;
+    }
+
+    private static String describeDependency(MavenDomDependency dependency) {
+        if (!hasId(dependency)) {
             return null;
         }
-        XmlTag groupIdTag = dependencyTag.findFirstSubTag("groupId");
-        XmlTag artifactIdTag = dependencyTag.findFirstSubTag("artifactId");
-        if (artifactIdTag == null || groupIdTag == null) {
+        if (!dependency.getExclusions().getExclusions().isEmpty()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(tagText(groupIdTag));
-        appendPartIfNotNull(sb, artifactIdTag);
-        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("type"));
-        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("classifier"));
-        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("version"));
-        appendPartIfNotNull(sb, dependencyTag.findFirstSubTag("scope"));
+        sb.append(dependency.getGroupId().getStringValue());
+        appendPartIfNotNull(sb, dependency.getArtifactId().getStringValue());
+        appendPartIfNotNull(sb, dependency.getType().getStringValue());
+        appendPartIfNotNull(sb, dependency.getClassifier().getStringValue());
+        appendPartIfNotNull(sb, dependency.getVersion().getStringValue());
+        appendPartIfNotNull(sb, dependency.getScope().getStringValue());
         return sb.toString();
     }
 
-    private static void appendPartIfNotNull(StringBuilder sb, XmlTag tag) {
-        if (tag != null) {
-            sb.append(':').append(tagText(tag));
+    private static String describeExclusion(MavenDomExclusion exclusion) {
+        if (!hasId(exclusion)) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(exclusion.getGroupId().getStringValue());
+        appendPartIfNotNull(sb, exclusion.getArtifactId().getStringValue());
+        return sb.toString();
+    }
+
+    private static void appendPartIfNotNull(StringBuilder sb, String s) {
+        if (s != null) {
+            sb.append(':').append(s);
         }
     }
-
-    private static String tagText(XmlTag tag) {
-        return tag.getValue().getTrimmedText();
-    }
-
 
     //TODO: it's a copypaste from com.intellij.lang.XmlCodeFoldingBuilder
     private static final TokenSet XML_ATTRIBUTE_SET = TokenSet.create(XmlElementType.XML_ATTRIBUTE);
