@@ -19,11 +19,11 @@ import com.intellij.util.xml.DomManager;
 import com.intellij.xml.util.XmlTagUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.idea.maven.dom.model.MavenDomDependency;
-import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
+import org.jetbrains.idea.maven.dom.model.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
     @NotNull
@@ -41,26 +41,33 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
 
         Collection<FoldingDescriptor> descriptors = new ArrayList<>();
 
+        Consumer<MavenDomDependencies> processDependencies = dependencies -> {
+            dependencies.getDependencies().forEach(dependency -> addDependencyDescriptor(descriptors, dependency));
+        };
+        Consumer<MavenDomPlugin> processPlugin = plugin -> {
+            processDependencies.accept(plugin.getDependencies());
+        };
+        Consumer<MavenDomProjectModelBase> processModelBase = mb -> {
+            processDependencies.accept(mb.getDependencies());
+            processDependencies.accept(mb.getDependencyManagement().getDependencies());
+
+            mb.getBuild().getPlugins().getPlugins().forEach(processPlugin);
+            mb.getBuild().getPluginManagement().getPlugins().getPlugins().forEach(processPlugin);
+        };
+
         MavenDomProjectModel projectElement = fileElement.getRootElement();
+        processModelBase.accept(projectElement);
+        projectElement.getProfiles().getProfiles().forEach(processModelBase::accept);
 
-        for (MavenDomDependency dependency : projectElement.getDependencies().getDependencies()) {
-            XmlTag dependencyTag = dependency.getXmlTag();
-            String dependencyDescription = describeDependency(dependencyTag);
-            if (dependencyDescription != null) {
-                TextRange rangeToFold = getRangeToFold(dependencyTag);
-                if (rangeToFold != null) {
-                    descriptors.add(new NamedFoldingDescriptor(
-                            dependencyTag,
-                            rangeToFold.getStartOffset(),
-                            rangeToFold.getEndOffset(),
-                            null,
-                            " " + dependencyDescription));
-                }
+        return descriptors.isEmpty() ? FoldingDescriptor.EMPTY
+                : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
+    }
 
-            }
+    private static void addDependencyDescriptor(Collection<FoldingDescriptor> descriptors, MavenDomDependency dependency) {
+        FoldingDescriptor foldingDescriptor = foldingDescriptor(dependency.getXmlTag());
+        if (foldingDescriptor != null) {
+            descriptors.add(foldingDescriptor);
         }
-
-        return descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
     }
 
     @Nullable
@@ -72,6 +79,24 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
     @Override
     public boolean isCollapsedByDefault(@NotNull ASTNode node) {
         return true;
+    }
+
+    @Nullable
+    private static FoldingDescriptor foldingDescriptor(XmlTag dependencyTag) {
+        String dependencyDescription = describeDependency(dependencyTag);
+        if (dependencyDescription == null) {
+            return null;
+        }
+        TextRange rangeToFold = getRangeToFold(dependencyTag);
+        if (rangeToFold == null) {
+            return null;
+        }
+        return new NamedFoldingDescriptor(
+                dependencyTag,
+                rangeToFold.getStartOffset(),
+                rangeToFold.getEndOffset(),
+                null,
+                " " + dependencyDescription);
     }
 
     //TODO systemPath, optional
@@ -109,7 +134,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
     //TODO: it's a copypaste from com.intellij.lang.XmlCodeFoldingBuilder
     private static final TokenSet XML_ATTRIBUTE_SET = TokenSet.create(XmlElementType.XML_ATTRIBUTE);
     @Nullable
-    private TextRange getRangeToFold(XmlTag xmlTag) {
+    private static TextRange getRangeToFold(XmlTag xmlTag) {
         XmlToken tagNameElement = XmlTagUtil.getStartTagNameElement(xmlTag);
         if (tagNameElement == null) return null;
 
