@@ -116,21 +116,18 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (!hasId(parent)) {
             return null;
         }
-        if (parent.getRelativePath().getStringValue() != null) {
-            return null;
-        }
         StringBuilder sb = new StringBuilder();
         sb.append(parent.getGroupId().getStringValue());
         appendPartIfNotNull(sb, parent.getArtifactId().getStringValue());
         appendPartIfNotNull(sb, parent.getVersion().getStringValue());
+        if (parent.getRelativePath().exists()) {
+            sb.append(" ...");
+        }
         return sb.toString();
     }
 
     private static String describeDependency(MavenDomDependency dependency) {
         if (!hasId(dependency)) {
-            return null;
-        }
-        if (!dependency.getExclusions().getExclusions().isEmpty()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
@@ -140,6 +137,9 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         appendPartIfNotNull(sb, dependency.getClassifier().getStringValue());
         appendPartIfNotNull(sb, dependency.getVersion().getStringValue());
         appendPartIfNotNull(sb, dependency.getScope().getStringValue());
+        if (dependency.getExclusions().exists()) {
+            sb.append(" ...");
+        }
         return sb.toString();
     }
 
