@@ -57,6 +57,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             });
         };
         Consumer<MavenDomPlugin> processPlugin = plugin -> {
+            addDescriptorIfPossible.accept(plugin.getXmlTag(), describePlugin(plugin));
             processDependencies.accept(plugin.getDependencies());
         };
         Consumer<MavenDomProjectModelBase> processModelBase = mb -> {
@@ -169,6 +170,31 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         return sb.toString();
     }
 
+    private static String describePlugin(MavenDomPlugin plugin) {
+        String artifactId = plugin.getArtifactId().getStringValue();
+        if (artifactId == null) {
+            return null;
+        }
+        String groupId = plugin.getGroupId().getStringValue();
+        StringBuilder sb = new StringBuilder();
+        if (groupId == null) {
+            sb.append(artifactId);
+        } else {
+            sb.append(groupId).append(':').append(artifactId);
+        }
+        appendPartIfNotNull(sb, plugin.getVersion().getStringValue());
+        for (XmlTag subTag : plugin.getXmlTag().getSubTags()) {
+            String subTagName = subTag.getLocalName();
+            if (!subTagName.equals("groupId")
+                    && !subTagName.equals("artifactId")
+                    && !subTagName.equals("version")) {
+                sb.append(" ...");
+                break;
+            }
+        }
+        return sb.toString();
+    }
+
     private static void appendPartIfNotNull(StringBuilder sb, String s) {
         if (s != null) {
             sb.append(':').append(s);
@@ -177,6 +203,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
 
     //TODO: it's a copypaste from com.intellij.lang.XmlCodeFoldingBuilder
     private static final TokenSet XML_ATTRIBUTE_SET = TokenSet.create(XmlElementType.XML_ATTRIBUTE);
+
     @Nullable
     private static TextRange getRangeToFold(XmlTag xmlTag) {
         XmlToken tagNameElement = XmlTagUtil.getStartTagNameElement(xmlTag);
