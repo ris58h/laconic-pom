@@ -71,7 +71,10 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         MavenDomParent parent = projectElement.getMavenParent();
         addDescriptorIfPossible.accept(parent.getXmlTag(), describeParent(parent));
         processModelBase.accept(projectElement);
-        projectElement.getProfiles().getProfiles().forEach(processModelBase::accept);
+        projectElement.getProfiles().getProfiles().forEach(profile -> {
+            addDescriptorIfPossible.accept(profile.getXmlTag(), describeProfile(profile));
+            processModelBase.accept(profile);
+        });
 
         return descriptors.isEmpty() ? FoldingDescriptor.EMPTY
                 : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
@@ -124,6 +127,19 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             sb.append(" ...");
         }
         return sb.toString();
+    }
+
+    private static String describeProfile(MavenDomProfile profile) {
+        String id = profile.getId().getStringValue();
+        if (id == null) {
+            return null;
+        }
+        for (XmlTag subTag : profile.getXmlTag().getSubTags()) {
+            if (!subTag.getLocalName().equals("id")) {
+                return id + " ...";
+            }
+        }
+        return id;
     }
 
     private static String describeDependency(MavenDomDependency dependency) {
