@@ -64,18 +64,23 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             processDependencies.accept(mb.getDependencies());
             processDependencies.accept(mb.getDependencyManagement().getDependencies());
 
-            mb.getBuild().getPlugins().getPlugins().forEach(processPlugin);
-            mb.getBuild().getPluginManagement().getPlugins().getPlugins().forEach(processPlugin);
+            MavenDomBuildBase build = mb.getBuild();
+            build.getPlugins().getPlugins().forEach(processPlugin);
+            build.getPluginManagement().getPlugins().getPlugins().forEach(processPlugin);
+        };
+        Consumer<MavenDomExtension> processExtension = extension -> {
+            addDescriptorIfPossible.accept(extension.getXmlTag(), describeExtension(extension));
         };
 
-        MavenDomProjectModel projectElement = fileElement.getRootElement();
-        MavenDomParent parent = projectElement.getMavenParent();
+        MavenDomProjectModel project = fileElement.getRootElement();
+        MavenDomParent parent = project.getMavenParent();
         addDescriptorIfPossible.accept(parent.getXmlTag(), describeParent(parent));
-        processModelBase.accept(projectElement);
-        projectElement.getProfiles().getProfiles().forEach(profile -> {
+        processModelBase.accept(project);
+        project.getProfiles().getProfiles().forEach(profile -> {
             addDescriptorIfPossible.accept(profile.getXmlTag(), describeProfile(profile));
             processModelBase.accept(profile);
         });
+        project.getBuild().getExtensions().getExtensions().forEach(processExtension);
 
         return descriptors.isEmpty() ? FoldingDescriptor.EMPTY
                 : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
@@ -192,6 +197,22 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
                 break;
             }
         }
+        return sb.toString();
+    }
+
+    private String describeExtension(MavenDomExtension extension) {
+        String artifactId = extension.getArtifactId().getStringValue();
+        if (artifactId == null) {
+            return null;
+        }
+        String groupId = extension.getGroupId().getStringValue();
+        StringBuilder sb = new StringBuilder();
+        if (groupId == null) {
+            sb.append(artifactId);
+        } else {
+            sb.append(groupId).append(':').append(artifactId);
+        }
+        appendPartIfNotNull(sb, extension.getVersion().getStringValue());
         return sb.toString();
     }
 
