@@ -125,10 +125,14 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (!hasId(parent)) {
             return null;
         }
+        String version = parent.getVersion().getStringValue();
+        if (version == null) {
+            return null;
+        }
         StringBuilder sb = new StringBuilder();
         sb.append(parent.getGroupId().getStringValue());
         appendPartIfNotNull(sb, parent.getArtifactId().getStringValue());
-        appendPartIfNotNull(sb, parent.getVersion().getStringValue());
+        appendPartIfNotNull(sb, version);
         if (parent.getRelativePath().exists()) {
             sb.append(" ...");
         }
