@@ -18,7 +18,6 @@ dependencies {
 }
 
 intellij {
-//    TODO version-since & version-until
     version '2018.1'
     plugins 'maven'
 }
