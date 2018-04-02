@@ -18,6 +18,7 @@ dependencies {
 }
 
 intellij {
-    version '2018.1'
+    updateSinceUntilBuild false
+    version '2016.1'
     plugins 'maven'
 }
