@@ -7,7 +7,7 @@
     Laconic POM
     ]]></description>
 
-    <idea-version since-build="161" />
+    <idea-version since-build="145.0" />
 
     <depends>org.jetbrains.idea.maven</depends>
 
