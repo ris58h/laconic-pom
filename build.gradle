@@ -20,5 +20,5 @@ dependencies {
 intellij {
     updateSinceUntilBuild false
     version '2018.1'
-    plugins 'maven'
+    plugins = ['maven', 'properties']
 }
