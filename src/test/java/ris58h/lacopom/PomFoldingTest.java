@@ -9,7 +9,19 @@ public class PomFoldingTest extends LightCodeInsightFixtureTestCase {
         return "testData";
     }
 
-    public void testFolding() {
-        myFixture.testFolding(getTestDataPath() + "/pom.xml");
+    public void testParent() {
+        doNamedTest();
+    }
+
+    public void testDependencyManagement() {
+        doNamedTest();
+    }
+
+    public void testDependencies() {
+        doNamedTest();
+    }
+
+    private void doNamedTest() {
+        myFixture.testFolding(getTestDataPath() + "/" + getTestName(true) + ".xml");
     }
 }
