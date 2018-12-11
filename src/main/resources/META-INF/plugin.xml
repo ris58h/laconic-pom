@@ -4,7 +4,7 @@
     <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/lacopom">ris58h</vendor>
 
     <description><![CDATA[
-    Laconic POM
+    Folds Maven's boilerplate.
     ]]></description>
 
     <idea-version since-build="145.0" />
