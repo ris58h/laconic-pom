@@ -3,7 +3,6 @@ package ris58h.lacopom;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.folding.FoldingBuilderEx;
 import com.intellij.lang.folding.FoldingDescriptor;
-import com.intellij.lang.folding.NamedFoldingDescriptor;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.UnfairTextRange;
@@ -29,7 +28,7 @@ import java.util.function.Consumer;
 public class PomFoldingBuilder extends FoldingBuilderEx {
     @NotNull
     @Override
-    public FoldingDescriptor[] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
+    public FoldingDescriptor @NotNull [] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
         if (!(root instanceof XmlFile)) {
             return FoldingDescriptor.EMPTY;
         }
@@ -106,7 +105,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (rangeToFold == null) {
             return null;
         }
-        return new NamedFoldingDescriptor(
+        return new FoldingDescriptor(
                 xmlTag,
                 rangeToFold.getStartOffset(),
                 rangeToFold.getEndOffset(),
@@ -144,9 +143,12 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (id == null) {
             return null;
         }
-        for (XmlTag subTag : profile.getXmlTag().getSubTags()) {
-            if (!subTag.getLocalName().equals("id")) {
-                return id + " ...";
+        XmlTag profileTag = profile.getXmlTag();
+        if (profileTag != null) {
+            for (XmlTag subTag : profileTag.getSubTags()) {
+                if (!subTag.getLocalName().equals("id")) {
+                    return id + " ...";
+                }
             }
         }
         return id;
@@ -192,13 +194,16 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             sb.append(groupId).append(':').append(artifactId);
         }
         appendPartIfNotNull(sb, plugin.getVersion().getStringValue());
-        for (XmlTag subTag : plugin.getXmlTag().getSubTags()) {
-            String subTagName = subTag.getLocalName();
-            if (!subTagName.equals("groupId")
-                    && !subTagName.equals("artifactId")
-                    && !subTagName.equals("version")) {
-                sb.append(" ...");
-                break;
+        XmlTag pluginTag = plugin.getXmlTag();
+        if (pluginTag != null) {
+            for (XmlTag subTag : pluginTag.getSubTags()) {
+                String subTagName = subTag.getLocalName();
+                if (!subTagName.equals("groupId")
+                        && !subTagName.equals("artifactId")
+                        && !subTagName.equals("version")) {
+                    sb.append(" ...");
+                    break;
+                }
             }
         }
         return sb.toString();

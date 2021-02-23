@@ -1,8 +1,8 @@
 package ris58h.lacopom;
 
-import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase;
+import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 
-public class PomFoldingTest extends LightCodeInsightFixtureTestCase {
+public class PomFoldingTest extends BasePlatformTestCase {
 
     @Override
     protected String getTestDataPath() {
