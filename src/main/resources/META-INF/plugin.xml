@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>ris58h.lacopom</id>
     <name>Laconic POM</name>
-    <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/lacopom">ris58h</vendor>
+    <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/laconic-pom">ris58h</vendor>
 
     <description><![CDATA[
     Folds Maven's boilerplate.
