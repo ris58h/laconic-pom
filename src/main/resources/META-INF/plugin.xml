@@ -1,10 +1,10 @@
 <idea-plugin>
     <id>ris58h.lacopom</id>
-    <name>Laconic POM</name>
+    <name>Laconic POM for Maven</name>
     <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/laconic-pom">ris58h</vendor>
 
     <description><![CDATA[
-    Folds Maven's boilerplate.
+    A plugin that folds Maven boilerplate in pom.xml files.
     ]]></description>
 
     <idea-version since-build="192.2840" />
