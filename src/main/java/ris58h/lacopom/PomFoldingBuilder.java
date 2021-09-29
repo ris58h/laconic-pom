@@ -26,6 +26,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
+
+    private static final char PART_SEPARATOR = ':';
+    private static final String MORE_ENDING = " ...";
+
     @NotNull
     @Override
     public FoldingDescriptor @NotNull [] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
@@ -133,7 +137,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         appendPartIfNotNull(sb, parent.getArtifactId().getStringValue());
         appendPartIfNotNull(sb, version);
         if (parent.getRelativePath().exists()) {
-            sb.append(" ...");
+            sb.append(MORE_ENDING);
         }
         return sb.toString();
     }
@@ -147,7 +151,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (profileTag != null) {
             for (XmlTag subTag : profileTag.getSubTags()) {
                 if (!subTag.getLocalName().equals("id")) {
-                    return id + " ...";
+                    return id + MORE_ENDING;
                 }
             }
         }
@@ -166,7 +170,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         appendPartIfNotNull(sb, dependency.getVersion().getStringValue());
         appendPartIfNotNull(sb, dependency.getScope().getStringValue());
         if (dependency.getExclusions().exists()) {
-            sb.append(" ...");
+            sb.append(MORE_ENDING);
         }
         return sb.toString();
     }
@@ -191,7 +195,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (groupId == null) {
             sb.append(artifactId);
         } else {
-            sb.append(groupId).append(':').append(artifactId);
+            sb.append(groupId).append(PART_SEPARATOR).append(artifactId);
         }
         appendPartIfNotNull(sb, plugin.getVersion().getStringValue());
         XmlTag pluginTag = plugin.getXmlTag();
@@ -201,7 +205,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
                 if (!subTagName.equals("groupId")
                         && !subTagName.equals("artifactId")
                         && !subTagName.equals("version")) {
-                    sb.append(" ...");
+                    sb.append(MORE_ENDING);
                     break;
                 }
             }
@@ -219,7 +223,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (groupId == null) {
             sb.append(artifactId);
         } else {
-            sb.append(groupId).append(':').append(artifactId);
+            sb.append(groupId).append(PART_SEPARATOR).append(artifactId);
         }
         appendPartIfNotNull(sb, extension.getVersion().getStringValue());
         return sb.toString();
@@ -227,7 +231,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
 
     private static void appendPartIfNotNull(StringBuilder sb, String s) {
         if (s != null) {
-            sb.append(':').append(s);
+            sb.append(PART_SEPARATOR).append(s);
         }
     }
 
