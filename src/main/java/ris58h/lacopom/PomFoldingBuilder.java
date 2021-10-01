@@ -13,17 +13,21 @@ import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlToken;
-import com.intellij.util.xml.DomFileElement;
-import com.intellij.util.xml.DomManager;
 import com.intellij.xml.util.XmlTagUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.idea.maven.dom.model.*;
+import org.jetbrains.idea.maven.dom.MavenDomUtil;
+import org.jetbrains.idea.maven.dom.model.MavenDomDependency;
+import org.jetbrains.idea.maven.dom.model.MavenDomExclusion;
+import org.jetbrains.idea.maven.dom.model.MavenDomExtension;
+import org.jetbrains.idea.maven.dom.model.MavenDomParent;
+import org.jetbrains.idea.maven.dom.model.MavenDomPlugin;
+import org.jetbrains.idea.maven.dom.model.MavenDomProfile;
+import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
+import org.jetbrains.idea.maven.dom.model.MavenDomShortArtifactCoordinates;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
 
@@ -37,53 +41,12 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             return FoldingDescriptor.EMPTY;
         }
 
-        DomManager manager = DomManager.getDomManager(root.getProject());
-        DomFileElement<MavenDomProjectModel> fileElement = manager.getFileElement(((XmlFile) root), MavenDomProjectModel.class);
-        if (fileElement == null) {
+        MavenDomProjectModel projectModel = MavenDomUtil.getMavenDomModel(((XmlFile) root), MavenDomProjectModel.class);
+        if (projectModel == null) {
             return FoldingDescriptor.EMPTY;
         }
 
-        Collection<FoldingDescriptor> descriptors = new ArrayList<>();
-
-        BiConsumer<XmlTag, String> addDescriptorIfPossible = (xmlTag, placeholder) -> {
-            FoldingDescriptor foldingDescriptor = foldingDescriptor(xmlTag, placeholder);
-            if (foldingDescriptor != null) {
-                descriptors.add(foldingDescriptor);
-            }
-        };
-        Consumer<MavenDomDependencies> processDependencies = dependencies -> {
-            dependencies.getDependencies().forEach(dependency -> {
-                addDescriptorIfPossible.accept(dependency.getXmlTag(), describeDependency(dependency));
-                dependency.getExclusions().getExclusions().forEach(exclusion -> {
-                    addDescriptorIfPossible.accept(exclusion.getXmlTag(), describeExclusion(exclusion));
-                });
-            });
-        };
-        Consumer<MavenDomPlugin> processPlugin = plugin -> {
-            addDescriptorIfPossible.accept(plugin.getXmlTag(), describePlugin(plugin));
-            processDependencies.accept(plugin.getDependencies());
-        };
-        Consumer<MavenDomProjectModelBase> processModelBase = mb -> {
-            processDependencies.accept(mb.getDependencies());
-            processDependencies.accept(mb.getDependencyManagement().getDependencies());
-
-            MavenDomBuildBase build = mb.getBuild();
-            build.getPlugins().getPlugins().forEach(processPlugin);
-            build.getPluginManagement().getPlugins().getPlugins().forEach(processPlugin);
-        };
-        Consumer<MavenDomExtension> processExtension = extension -> {
-            addDescriptorIfPossible.accept(extension.getXmlTag(), describeExtension(extension));
-        };
-
-        MavenDomProjectModel project = fileElement.getRootElement();
-        MavenDomParent parent = project.getMavenParent();
-        addDescriptorIfPossible.accept(parent.getXmlTag(), describeParent(parent));
-        processModelBase.accept(project);
-        project.getProfiles().getProfiles().forEach(profile -> {
-            addDescriptorIfPossible.accept(profile.getXmlTag(), describeProfile(profile));
-            processModelBase.accept(profile);
-        });
-        project.getBuild().getExtensions().getExtensions().forEach(processExtension);
+        Collection<FoldingDescriptor> descriptors = descriptors(projectModel);
 
         return descriptors.isEmpty() ? FoldingDescriptor.EMPTY
                 : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
@@ -117,6 +80,48 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
                 " " + placeholder);
     }
 
+    private static Collection<FoldingDescriptor> descriptors(MavenDomProjectModel projectModel) {
+        Collection<FoldingDescriptor> descriptors = new ArrayList<>();
+        new MavenDomProcessor() {
+            private void addDescriptorIfPossible(XmlTag xmlTag, String placeholder) {
+                FoldingDescriptor foldingDescriptor = foldingDescriptor(xmlTag, placeholder);
+                if (foldingDescriptor != null) {
+                    descriptors.add(foldingDescriptor);
+                }
+            }
+
+            @Override
+            protected void onParent(MavenDomParent parent) {
+                addDescriptorIfPossible(parent.getXmlTag(), describeParent(parent));
+            }
+
+            @Override
+            protected void onProfile(MavenDomProfile profile) {
+                addDescriptorIfPossible(profile.getXmlTag(), describeProfile(profile));
+            }
+
+            @Override
+            protected void onExtension(MavenDomExtension extension) {
+                addDescriptorIfPossible(extension.getXmlTag(), describeExtension(extension));
+            }
+
+            @Override
+            protected void onDependency(MavenDomDependency dependency) {
+                addDescriptorIfPossible(dependency.getXmlTag(), describeDependency(dependency));
+            }
+
+            @Override
+            protected void onExclusion(MavenDomExclusion exclusion) {
+                addDescriptorIfPossible(exclusion.getXmlTag(), describeExclusion(exclusion));
+            }
+
+            @Override
+            protected void onPlugin(MavenDomPlugin plugin) {
+                addDescriptorIfPossible(plugin.getXmlTag(), describePlugin(plugin));
+            }
+        }.process(projectModel);
+        return descriptors;
+    }
 
     private static boolean hasId(MavenDomShortArtifactCoordinates artifactCoordinates) {
         String groupId = artifactCoordinates.getGroupId().getStringValue();
@@ -213,7 +218,7 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         return sb.toString();
     }
 
-    private String describeExtension(MavenDomExtension extension) {
+    private static String describeExtension(MavenDomExtension extension) {
         String artifactId = extension.getArtifactId().getStringValue();
         if (artifactId == null) {
             return null;
