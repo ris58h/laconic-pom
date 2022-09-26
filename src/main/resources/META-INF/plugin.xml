@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>ris58h.lacopom</id>
     <name>Laconic POM for Maven</name>
-    <vendor email="ris58h@gmail.com" url="https://github.com/ris58h/laconic-pom">ris58h</vendor>
+    <vendor email="ris58h@gmail.com" url="https://github.com/ris58h">Ilya Rodionov</vendor>
 
     <description><![CDATA[
     A plugin that folds Maven boilerplate in pom.xml files.
