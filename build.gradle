@@ -25,3 +25,5 @@ intellij {
     version = 'LATEST-EAP-SNAPSHOT'
     plugins = ['maven', 'com.intellij.java']
 }
+
+tasks.buildSearchableOptions.enabled = false
