@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
-
+    private static final FoldingDescriptor[] EMPTY_FOLDING_DESCRIPTOR_ARRAY = new FoldingDescriptor[0];
     private static final char PART_SEPARATOR = ':';
     private static final String MORE_ENDING = " ...";
 
@@ -38,17 +38,17 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
     @Override
     public FoldingDescriptor @NotNull [] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
         if (!(root instanceof XmlFile)) {
-            return FoldingDescriptor.EMPTY;
+            return EMPTY_FOLDING_DESCRIPTOR_ARRAY;
         }
 
         MavenDomProjectModel projectModel = MavenDomUtil.getMavenDomModel(((XmlFile) root), MavenDomProjectModel.class);
         if (projectModel == null) {
-            return FoldingDescriptor.EMPTY;
+            return EMPTY_FOLDING_DESCRIPTOR_ARRAY;
         }
 
         Collection<FoldingDescriptor> descriptors = descriptors(projectModel);
 
-        return descriptors.isEmpty() ? FoldingDescriptor.EMPTY
+        return descriptors.isEmpty() ? EMPTY_FOLDING_DESCRIPTOR_ARRAY
                 : descriptors.toArray(new FoldingDescriptor[descriptors.size()]);
     }
 
