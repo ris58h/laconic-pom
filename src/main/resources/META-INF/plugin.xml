@@ -4,7 +4,7 @@
     <vendor email="ris58h@gmail.com" url="https://github.com/ris58h">Ilya Rodionov</vendor>
 
     <description><![CDATA[
-    A plugin that folds Maven boilerplate in pom.xml files.
+    Folds Maven boilerplate in pom.xml files.
     ]]></description>
 
     <idea-version since-build="192.2840" />
