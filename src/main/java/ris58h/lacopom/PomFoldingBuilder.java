@@ -13,6 +13,7 @@ import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlToken;
+import com.intellij.util.xml.DomElement;
 import com.intellij.xml.util.XmlTagUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,8 +28,7 @@ import org.jetbrains.idea.maven.dom.model.MavenDomProfile;
 import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
 import org.jetbrains.idea.maven.dom.model.MavenDomShortArtifactCoordinates;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 public class PomFoldingBuilder extends FoldingBuilderEx {
     private static final FoldingDescriptor[] EMPTY_FOLDING_DESCRIPTOR_ARRAY = new FoldingDescriptor[0];
@@ -158,15 +158,8 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (id == null) {
             return null;
         }
-        XmlTag profileTag = profile.getXmlTag();
-        if (profileTag != null) {
-            for (XmlTag subTag : profileTag.getSubTags()) {
-                if (!subTag.getLocalName().equals("id")) {
-                    return id + MORE_ENDING;
-                }
-            }
-        }
-        return id;
+        boolean hasMore = hasSubTagsExcept(profile, Set.of("id"));
+        return hasMore ? id + MORE_ENDING : id;
     }
 
     private static String describeDependency(MavenDomDependency dependency) {
@@ -209,17 +202,9 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             sb.append(groupId).append(PART_SEPARATOR).append(artifactId);
         }
         appendPartIfNotNull(sb, plugin.getVersion().getStringValue());
-        XmlTag pluginTag = plugin.getXmlTag();
-        if (pluginTag != null) {
-            for (XmlTag subTag : pluginTag.getSubTags()) {
-                String subTagName = subTag.getLocalName();
-                if (!subTagName.equals("groupId")
-                        && !subTagName.equals("artifactId")
-                        && !subTagName.equals("version")) {
-                    sb.append(MORE_ENDING);
-                    break;
-                }
-            }
+        boolean hasMore = hasSubTagsExcept(plugin, Set.of("groupId", "artifactId", "version"));
+        if (hasMore) {
+            sb.append(MORE_ENDING);
         }
         return sb.toString();
     }
@@ -245,21 +230,26 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         if (id == null) {
             return null;
         }
-        XmlTag executionTag = execution.getXmlTag();
-        if (executionTag != null) {
-            for (XmlTag subTag : executionTag.getSubTags()) {
-                if (!subTag.getLocalName().equals("id")) {
-                    return id + MORE_ENDING;
-                }
-            }
-        }
-        return id;
+        boolean hasMore = hasSubTagsExcept(execution, Set.of("id"));
+        return hasMore ? id + MORE_ENDING : id;
     }
 
     private static void appendPartIfNotNull(StringBuilder sb, String s) {
         if (s != null) {
             sb.append(PART_SEPARATOR).append(s);
         }
+    }
+
+    private static boolean hasSubTagsExcept(DomElement element, Set<String> expectedTags) {
+        XmlTag xmlTag = element.getXmlTag();
+        if (xmlTag != null) {
+            for (XmlTag subTag : xmlTag.getSubTags()) {
+                if (!expectedTags.contains(subTag.getLocalName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     //TODO: it's a copypaste from com.intellij.lang.XmlCodeFoldingBuilder
