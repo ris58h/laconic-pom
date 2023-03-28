@@ -22,6 +22,7 @@ import org.jetbrains.idea.maven.dom.model.MavenDomExclusion;
 import org.jetbrains.idea.maven.dom.model.MavenDomExtension;
 import org.jetbrains.idea.maven.dom.model.MavenDomParent;
 import org.jetbrains.idea.maven.dom.model.MavenDomPlugin;
+import org.jetbrains.idea.maven.dom.model.MavenDomPluginExecution;
 import org.jetbrains.idea.maven.dom.model.MavenDomProfile;
 import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
 import org.jetbrains.idea.maven.dom.model.MavenDomShortArtifactCoordinates;
@@ -118,6 +119,11 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
             @Override
             protected void onPlugin(MavenDomPlugin plugin) {
                 addDescriptorIfPossible(plugin.getXmlTag(), describePlugin(plugin));
+            }
+
+            @Override
+            protected void onExecution(MavenDomPluginExecution execution) {
+                addDescriptorIfPossible(execution.getXmlTag(), describeExecution(execution));
             }
         }.process(projectModel);
         return descriptors;
@@ -232,6 +238,22 @@ public class PomFoldingBuilder extends FoldingBuilderEx {
         }
         appendPartIfNotNull(sb, extension.getVersion().getStringValue());
         return sb.toString();
+    }
+
+    private static String describeExecution(MavenDomPluginExecution execution) {
+        String id = execution.getId().getStringValue();
+        if (id == null) {
+            return null;
+        }
+        XmlTag executionTag = execution.getXmlTag();
+        if (executionTag != null) {
+            for (XmlTag subTag : executionTag.getSubTags()) {
+                if (!subTag.getLocalName().equals("id")) {
+                    return id + MORE_ENDING;
+                }
+            }
+        }
+        return id;
     }
 
     private static void appendPartIfNotNull(StringBuilder sb, String s) {

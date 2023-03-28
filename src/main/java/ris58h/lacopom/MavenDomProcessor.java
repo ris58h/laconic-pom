@@ -1,14 +1,6 @@
 package ris58h.lacopom;
 
-import org.jetbrains.idea.maven.dom.model.MavenDomDependencies;
-import org.jetbrains.idea.maven.dom.model.MavenDomDependency;
-import org.jetbrains.idea.maven.dom.model.MavenDomExclusion;
-import org.jetbrains.idea.maven.dom.model.MavenDomExtension;
-import org.jetbrains.idea.maven.dom.model.MavenDomParent;
-import org.jetbrains.idea.maven.dom.model.MavenDomPlugin;
-import org.jetbrains.idea.maven.dom.model.MavenDomProfile;
-import org.jetbrains.idea.maven.dom.model.MavenDomProjectModel;
-import org.jetbrains.idea.maven.dom.model.MavenDomProjectModelBase;
+import org.jetbrains.idea.maven.dom.model.*;
 
 public class MavenDomProcessor {
     public final void process(MavenDomProjectModel projectModel) {
@@ -21,6 +13,7 @@ public class MavenDomProcessor {
     protected void onDependency(MavenDomDependency dependency) {}
     protected void onExclusion(MavenDomExclusion exclusion) {}
     protected void onPlugin(MavenDomPlugin plugin) {}
+    protected void onExecution(MavenDomPluginExecution execution) {}
 
     private void processProjectModel(MavenDomProjectModel projectModel) {
         onParent(projectModel.getMavenParent());
@@ -42,6 +35,7 @@ public class MavenDomProcessor {
     private void processPlugin(MavenDomPlugin plugin) {
         onPlugin(plugin);
         processDependencies(plugin.getDependencies());
+        processExecutions(plugin.getExecutions());
     }
 
     private void processModelBase(MavenDomProjectModelBase mb) {
@@ -49,5 +43,9 @@ public class MavenDomProcessor {
         processDependencies(mb.getDependencyManagement().getDependencies());
         mb.getBuild().getPlugins().getPlugins().forEach(this::processPlugin);
         mb.getBuild().getPluginManagement().getPlugins().getPlugins().forEach(this::processPlugin);
+    }
+
+    private void processExecutions(MavenDomExecutions executions) {
+        executions.getExecutions().forEach(this::onExecution);
     }
 }
