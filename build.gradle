@@ -21,8 +21,8 @@ dependencies {
 
 intellij {
     updateSinceUntilBuild = false
-//    version '2019.2'
-    version = 'LATEST-EAP-SNAPSHOT'
+    version '2019.2' // Build against 'since' version
+//    version = 'LATEST-EAP-SNAPSHOT' // Check against 'latest' version
     plugins = ['maven', 'com.intellij.java']
 }
 
