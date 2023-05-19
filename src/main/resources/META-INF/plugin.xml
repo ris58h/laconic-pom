@@ -10,7 +10,6 @@
     <idea-version since-build="192.2840" />
 
     <depends>org.jetbrains.idea.maven</depends>
-    <depends>com.intellij.modules.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <lang.foldingBuilder language="XML" order="first" implementationClass="ris58h.lacopom.PomFoldingBuilder"/>
