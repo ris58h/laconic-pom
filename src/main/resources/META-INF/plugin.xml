@@ -9,6 +9,7 @@
 
     <idea-version since-build="192.2840" />
 
+    <depends>com.intellij.modules.platform</depends>
     <depends>org.jetbrains.idea.maven</depends>
 
     <extensions defaultExtensionNs="com.intellij">
